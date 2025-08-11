@@ -3,34 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Buat Vera Sayang</title>
+  <title>Buat Vera Sayang 3D</title>
   <style>
     html,body { height: 100%; margin: 0; background: #000; overflow: hidden; font-family: Arial, sans-serif; }
-    #ui {
-      position: absolute; z-index: 5; left: 20px; top: 20px;
-      background: rgba(0,0,0,0.35); padding: 12px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.06); color: #fff;
-      backdrop-filter: blur(6px);
-    }
-    #ui button { margin-right: 8px; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; }
-    #ui button:hover { transform: translateY(-2px); }
-    #hint { position: absolute; left: 20px; bottom: 18px; color: rgba(255,255,255,0.6); font-size: 13px; z-index:5;}
   </style>
 </head>
 <body>
   <div id="canvas-container"></div>
 
-  <div id="ui">
-      <select id="wordCount">
-        <option value="30">30</option>
-        <option value="50" selected>50</option>
-        <option value="80">80</option>
-        <option value="120">120</option>
-      </select>
-    </label>
-  </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/geometries/TextGeometry.js"></script>
+  <script src="https://threejs.org/examples/js/loaders/FontLoader.js"></script>
+
   <script>
   let scene, camera, renderer, starField;
   let wordGroup, wordMeshes = [];
@@ -38,48 +22,66 @@
   let targetX = 0, targetY = 0;
   let isRotating = true;
   let starSpeed = 0.001;
-  let wordFallSpeed = 0.06;
-  let wordCount = 50;
+  let wordFallSpeed = 0.6;
+  let wordCount = 100; // default langsung 200
+  let loadedFont = null;
 
   const WORDS = [
-    "Love You Sayang Vera ❤❤❤", "❤❤❤", "Love You Cantikk ❤❤❤",
-    "Sayang Vera Fajriahh", "Raka ❤ Vera", "LOVE YOU FOREVER",
-    "Selalu Bersamamu ❤", "Sayangku Tercinta ❤❤❤", "Cintaku Tak Akan Luntur 💖",
-    "Kamu Dunia Aku 🌎❤", "My One And Only ❤", "Cinta Sejati Selamanya ❤",
-    "Aku & Kamu Selamanya ❤", "Vera Kesayanganku ❤", "Sweetheart ❤",
-    "Kamu Segalanya Untukku ❤", "Peluk Hangat Untukmu 🤗❤", "Kita Untuk Selamanya ❤",
-    "Aku Cinta Kamu ❤❤❤", "Forever With You ❤"
+    "Love You Sayang Vera ", "Love You Vera Cantikk ", "<3",
+    "Sayang Vera Fajriah", "Raka  Vera", "LOVE YOU VERA",
+    "Selalu Bersama VERA ", "Sayangku VERA ", "Cintaku Tak Akan Luntur VERA ",
+    "Kamu Dunia Aku ", "My Only VERA ", "Cinta VERA Selamanya ",
+    "Vera Kesayanganku ", "PELA CAYANGG ",
+    "Kamu Segalanya Untukku ", "Aku Cinta Kamu ", "Forever With You "
+  ];
+
+  // Palet warna romantis (pink, merah, ungu lembut, peach)
+  const ROMANTIC_COLORS = [
+    0xffb6c1, // light pink
+    0xff69b4, // hot pink
+    0xff1493, // deep pink
+    0xdb7093, // pale violet red
+    0xff6347, // tomato red
+    0xff4500, // orange red
+    0xffc0cb, // pink
+    0xe6a8d7, // soft purple-pink
+    0xff7f50, // coral
+    0xd87093  // pale pinkish purple
   ];
 
   function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 4000);
-    camera.position.z = 120;
+    camera.position.z = 200;
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(200, 200, 200);
+    scene.add(pointLight);
+
     wordGroup = new THREE.Group();
     scene.add(wordGroup);
 
     createStars();
-    create3DWordRain(wordCount);
+
+    const loader = new THREE.FontLoader();
+    loader.load('https://threejs.org/examples/fonts/optimer_bold.typeface.json', function(font) {
+      loadedFont = font;
+      create3DWordRain(wordCount);
+    });
 
     window.addEventListener('resize', onWindowResize);
     document.addEventListener('wheel', onMouseWheel);
 
-    document.getElementById('wordCount').addEventListener('change', (e)=>{
-      wordCount = parseInt(e.target.value);
-      resetWords(wordCount);
-    });
-
-    // ====== Tambahan kontrol drag & swipe ======
     let isDragging = false;
     let lastX = 0, lastY = 0;
 
-    // Mouse drag
     document.addEventListener('mousedown', (e) => {
       isDragging = true;
       lastX = e.clientX;
@@ -87,17 +89,14 @@
     });
     document.addEventListener('mousemove', (e) => {
       if (isDragging) {
-        const deltaX = e.clientX - lastX;
-        const deltaY = e.clientY - lastY;
-        mouseX += deltaX;
-        mouseY += deltaY;
+        mouseX += e.clientX - lastX;
+        mouseY += e.clientY - lastY;
         lastX = e.clientX;
         lastY = e.clientY;
       }
     });
     document.addEventListener('mouseup', () => { isDragging = false; });
 
-    // Touch swipe
     document.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
@@ -107,10 +106,8 @@
     });
     document.addEventListener('touchmove', (e) => {
       if (isDragging && e.touches.length === 1) {
-        const deltaX = e.touches[0].clientX - lastX;
-        const deltaY = e.touches[0].clientY - lastY;
-        mouseX += deltaX;
-        mouseY += deltaY;
+        mouseX += e.touches[0].clientX - lastX;
+        mouseY += e.touches[0].clientY - lastY;
         lastX = e.touches[0].clientX;
         lastY = e.touches[0].clientY;
       }
@@ -121,91 +118,82 @@
   }
 
   function createStars() {
-    const starGeometry = new THREE.BufferGeometry();
-    const starCount = 3000;
-    const positions = new Float32Array(starCount * 3);
-    const colors = new Float32Array(starCount * 3);
+  const loveShape = new THREE.Shape();
+  const x = 0, y = 0;
+  loveShape.moveTo(x + 25, y + 25);
+  loveShape.bezierCurveTo(x + 25, y + 25, x + 20, y, x, y);
+  loveShape.bezierCurveTo(x - 30, y, x - 30, y + 35, x - 30, y + 35);
+  loveShape.bezierCurveTo(x - 30, y + 55, x - 10, y + 77, x + 25, y + 95);
+  loveShape.bezierCurveTo(x + 60, y + 77, x + 80, y + 55, x + 80, y + 35);
+  loveShape.bezierCurveTo(x + 80, y + 35, x + 80, y, x + 50, y);
+  loveShape.bezierCurveTo(x + 35, y, x + 25, y + 25, x + 25, y + 25);
 
-    for (let i = 0; i < starCount; i++) {
-      const i3 = i * 3;
-      const radius = Math.random() * 1000 + 200;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(Math.random() * 2 - 1);
-      positions[i3]     = radius * Math.sin(phi) * Math.cos(theta);
-      positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      positions[i3 + 2] = radius * Math.cos(phi);
+  const loveGeometry = new THREE.ShapeBufferGeometry(loveShape);
+  loveGeometry.scale(0.1, 0.1, 0.1); // kecilin biar kaya bintang
 
-      const v = 0.6 + Math.random() * 0.4;
-      colors[i3] = v; colors[i3+1] = v; colors[i3+2] = 1.0;
-    }
+  const loveMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xff69b4, // pink love
+    side: THREE.DoubleSide 
+  });
 
-    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const starMaterial = new THREE.PointsMaterial({ vertexColors: true, size: 1.2, transparent:true });
-    starField = new THREE.Points(starGeometry, starMaterial);
-    scene.add(starField);
+  const loveCount = 500;
+  starField = new THREE.Group();
+
+  for (let i = 0; i < loveCount; i++) {
+    const mesh = new THREE.Mesh(loveGeometry, loveMaterial.clone());
+    mesh.material.color.setHex(ROMANTIC_COLORS[Math.floor(Math.random() * ROMANTIC_COLORS.length)]);
+    const radius = Math.random() * 1000 + 200;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    mesh.position.set(
+      radius * Math.sin(phi) * Math.cos(theta),
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi)
+    );
+    mesh.rotation.z = Math.random() * Math.PI;
+    starField.add(mesh);
   }
 
+  scene.add(starField);
+}
+
   function create3DWordRain(count=50) {
+    if (!loadedFont) return;
+
     wordMeshes.forEach(m => {
       if (m.parent) m.parent.remove(m);
-      m.material.map && m.material.map.dispose();
-      m.material.dispose();
       m.geometry.dispose();
+      m.material.dispose();
     });
     wordMeshes = [];
     wordGroup.clear();
 
     for (let i = 0; i < count; i++) {
       const txt = WORDS[Math.floor(Math.random() * WORDS.length)];
-      const tex = createTextCanvasTexture(txt);
-      const aspect = tex.image.width / tex.image.height;
-      const height = 8 + Math.random() * 8;
-      const width = height * aspect;
-      const geom = new THREE.PlaneGeometry(width, height);
-      const mat = new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        depthWrite: false
+      const geom = new THREE.TextGeometry(txt, {
+        font: loadedFont,
+        size: 8,
+        height: 2,
+        curveSegments: 8,
+        bevelEnabled: true,
+        bevelThickness: 0.5,
+        bevelSize: 0.3,
+        bevelSegments: 2
       });
+      const romanticColor = ROMANTIC_COLORS[Math.floor(Math.random() * ROMANTIC_COLORS.length)];
+      const mat = new THREE.MeshStandardMaterial({ color: romanticColor });
       const mesh = new THREE.Mesh(geom, mat);
+
       mesh.position.set((Math.random() - 0.5) * 800, (Math.random() * 600) - 200, (Math.random() - 0.5) * 800);
       mesh.rotation.set((Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.8);
+
       mesh.userData = {
-        fallSpeed: wordFallSpeed * (0.6 + Math.random() * 1.6),
-        spin: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02
-        )
+        fallSpeed: wordFallSpeed * (0.6 + Math.random() * 1.6)
       };
+
       wordGroup.add(mesh);
       wordMeshes.push(mesh);
     }
-  }
-
-  function resetWords(newCount) { create3DWordRain(newCount); }
-
-  function createTextCanvasTexture(text) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 1024;
-    canvas.height = 256;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    const fontSize = 56;
-    ctx.font = `bold ${fontSize}px Arial`;
-    const hue = Math.floor(Math.random() * 360);
-    ctx.fillStyle = `hsl(${hue} 80% 70%)`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 8;
-    ctx.fillText(text, canvas.width/2, canvas.height/2);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
-    return tex;
   }
 
   function animate() {
@@ -219,22 +207,19 @@
     if (isRotating) {
       starField.rotation.x += starSpeed * 0.3;
       starField.rotation.y += starSpeed;
-      wordGroup.rotation.x += starSpeed * 0.4;
-      wordGroup.rotation.y += starSpeed * 0.9;
     }
 
     for (let i = 0; i < wordMeshes.length; i++) {
       const m = wordMeshes[i];
       m.position.y -= m.userData.fallSpeed;
-      m.rotation.x += m.userData.spin.x;
-      m.rotation.y += m.userData.spin.y;
-      m.rotation.z += m.userData.spin.z;
+      m.lookAt(camera.position);
       if (m.position.y < -300) {
         m.position.y = 400 + Math.random() * 300;
         m.position.x = (Math.random() - 0.5) * 800;
         m.position.z = (Math.random() - 0.5) * 800;
       }
     }
+
     renderer.render(scene, camera);
   }
 
