@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Buat Vera Sayang</title>
+  <style>
+    html,body { height: 100%; margin: 0; background: #000; overflow: hidden; font-family: Arial, sans-serif; }
+    #ui {
+      position: absolute; z-index: 5; left: 20px; top: 20px;
+      background: rgba(0,0,0,0.35); padding: 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06); color: #fff;
+      backdrop-filter: blur(6px);
+    }
+    #ui button { margin-right: 8px; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; }
+    #ui button:hover { transform: translateY(-2px); }
+    #hint { position: absolute; left: 20px; bottom: 18px; color: rgba(255,255,255,0.6); font-size: 13px; z-index:5;}
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="ui">
+      <select id="wordCount">
+        <option value="30">30</option>
+        <option value="50" selected>50</option>
+        <option value="80">80</option>
+        <option value="120">120</option>
+      </select>
+    </label>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  let scene, camera, renderer, starField;
+  let wordGroup, wordMeshes = [];
+  let mouseX = 0, mouseY = 0;
+  let targetX = 0, targetY = 0;
+  let isRotating = true;
+  let starSpeed = 0.001;
+  let wordFallSpeed = 0.06;
+  let wordCount = 50;
+
+  const WORDS = [
+    "Love You Sayang Vera ❤❤❤", "❤❤❤", "Love You Cantikk ❤❤❤",
+    "Sayang Vera Fajriahh", "Raka ❤ Vera", "LOVE YOU FOREVER",
+    "Selalu Bersamamu ❤", "Sayangku Tercinta ❤❤❤", "Cintaku Tak Akan Luntur 💖",
+    "Kamu Dunia Aku 🌎❤", "My One And Only ❤", "Cinta Sejati Selamanya ❤",
+    "Aku & Kamu Selamanya ❤", "Vera Kesayanganku ❤", "Sweetheart ❤",
+    "Kamu Segalanya Untukku ❤", "Peluk Hangat Untukmu 🤗❤", "Kita Untuk Selamanya ❤",
+    "Aku Cinta Kamu ❤❤❤", "Forever With You ❤"
+  ];
+
+  function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 4000);
+    camera.position.z = 120;
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    wordGroup = new THREE.Group();
+    scene.add(wordGroup);
+
+    createStars();
+    create3DWordRain(wordCount);
+
+    window.addEventListener('resize', onWindowResize);
+    document.addEventListener('wheel', onMouseWheel);
+
+    document.getElementById('wordCount').addEventListener('change', (e)=>{
+      wordCount = parseInt(e.target.value);
+      resetWords(wordCount);
+    });
+
+    // ====== Tambahan kontrol drag & swipe ======
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+
+    // Mouse drag
+    document.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const deltaX = e.clientX - lastX;
+        const deltaY = e.clientY - lastY;
+        mouseX += deltaX;
+        mouseY += deltaY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      }
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Touch swipe
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+      }
+    });
+    document.addEventListener('touchmove', (e) => {
+      if (isDragging && e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - lastX;
+        const deltaY = e.touches[0].clientY - lastY;
+        mouseX += deltaX;
+        mouseY += deltaY;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+      }
+    });
+    document.addEventListener('touchend', () => { isDragging = false; });
+
+    animate();
+  }
+
+  function createStars() {
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 3000;
+    const positions = new Float32Array(starCount * 3);
+    const colors = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+      const radius = Math.random() * 1000 + 200;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      positions[i3]     = radius * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[i3 + 2] = radius * Math.cos(phi);
+
+      const v = 0.6 + Math.random() * 0.4;
+      colors[i3] = v; colors[i3+1] = v; colors[i3+2] = 1.0;
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const starMaterial = new THREE.PointsMaterial({ vertexColors: true, size: 1.2, transparent:true });
+    starField = new THREE.Points(starGeometry, starMaterial);
+    scene.add(starField);
+  }
+
+  function create3DWordRain(count=50) {
+    wordMeshes.forEach(m => {
+      if (m.parent) m.parent.remove(m);
+      m.material.map && m.material.map.dispose();
+      m.material.dispose();
+      m.geometry.dispose();
+    });
+    wordMeshes = [];
+    wordGroup.clear();
+
+    for (let i = 0; i < count; i++) {
+      const txt = WORDS[Math.floor(Math.random() * WORDS.length)];
+      const tex = createTextCanvasTexture(txt);
+      const aspect = tex.image.width / tex.image.height;
+      const height = 8 + Math.random() * 8;
+      const width = height * aspect;
+      const geom = new THREE.PlaneGeometry(width, height);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set((Math.random() - 0.5) * 800, (Math.random() * 600) - 200, (Math.random() - 0.5) * 800);
+      mesh.rotation.set((Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.8);
+      mesh.userData = {
+        fallSpeed: wordFallSpeed * (0.6 + Math.random() * 1.6),
+        spin: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.02
+        )
+      };
+      wordGroup.add(mesh);
+      wordMeshes.push(mesh);
+    }
+  }
+
+  function resetWords(newCount) { create3DWordRain(newCount); }
+
+  function createTextCanvasTexture(text) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1024;
+    canvas.height = 256;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const fontSize = 56;
+    ctx.font = `bold ${fontSize}px Arial`;
+    const hue = Math.floor(Math.random() * 360);
+    ctx.fillStyle = `hsl(${hue} 80% 70%)`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(text, canvas.width/2, canvas.height/2);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    targetX = mouseX * 0.002;
+    targetY = mouseY * 0.002;
+    camera.position.x += (targetX * 200 - camera.position.x) * 0.05;
+    camera.position.y += (-targetY * 200 - camera.position.y) * 0.05;
+    camera.lookAt(0, 0, 0);
+
+    if (isRotating) {
+      starField.rotation.x += starSpeed * 0.3;
+      starField.rotation.y += starSpeed;
+      wordGroup.rotation.x += starSpeed * 0.4;
+      wordGroup.rotation.y += starSpeed * 0.9;
+    }
+
+    for (let i = 0; i < wordMeshes.length; i++) {
+      const m = wordMeshes[i];
+      m.position.y -= m.userData.fallSpeed;
+      m.rotation.x += m.userData.spin.x;
+      m.rotation.y += m.userData.spin.y;
+      m.rotation.z += m.userData.spin.z;
+      if (m.position.y < -300) {
+        m.position.y = 400 + Math.random() * 300;
+        m.position.x = (Math.random() - 0.5) * 800;
+        m.position.z = (Math.random() - 0.5) * 800;
+      }
+    }
+    renderer.render(scene, camera);
+  }
+
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  function onMouseWheel(e) {
+    camera.fov += e.deltaY * 0.02;
+    camera.fov = Math.max(30, Math.min(120, camera.fov));
+    camera.updateProjectionMatrix();
+  }
+
+  init();
+  </script>
+</body>
+</html>
