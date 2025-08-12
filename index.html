@@ -11,6 +11,11 @@
 <body>
   <div id="canvas-container"></div>
 
+  <!-- Audio musik -->
+  <audio id="bg-music" loop>
+    <source src="https://cdn.discordapp.com/attachments/741280712866529340/1404629884030029925/The_Walters_--_I_Love_You_So.mp3?ex=689be305&is=689a9185&hm=7e2e8a6dcd19e2870a84d47a8bc59fd7602e4fd4d9ba83326faf4eacc954a603&" type="audio/mpeg">
+  </audio>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://threejs.org/examples/js/geometries/TextGeometry.js"></script>
   <script src="https://threejs.org/examples/js/loaders/FontLoader.js"></script>
@@ -23,7 +28,7 @@
   let isRotating = true;
   let starSpeed = 0.001;
   let wordFallSpeed = 0.6;
-  let wordCount = 100; // default langsung 200
+  let wordCount = 100;
   let loadedFont = null;
 
   const WORDS = [
@@ -35,18 +40,9 @@
     "Kamu Segalanya Untukku ", "Aku Cinta Kamu ", "Forever With You "
   ];
 
-  // Palet warna romantis (pink, merah, ungu lembut, peach)
   const ROMANTIC_COLORS = [
-    0xffb6c1, // light pink
-    0xff69b4, // hot pink
-    0xff1493, // deep pink
-    0xdb7093, // pale violet red
-    0xff6347, // tomato red
-    0xff4500, // orange red
-    0xffc0cb, // pink
-    0xe6a8d7, // soft purple-pink
-    0xff7f50, // coral
-    0xd87093  // pale pinkish purple
+    0xffb6c1, 0xff69b4, 0xff1493, 0xdb7093, 0xff6347,
+    0xff4500, 0xffc0cb, 0xe6a8d7, 0xff7f50, 0xd87093
   ];
 
   function init() {
@@ -114,48 +110,52 @@
     });
     document.addEventListener('touchend', () => { isDragging = false; });
 
+    // Play musik saat klik pertama
+    document.body.addEventListener('click', function() {
+      const music = document.getElementById('bg-music');
+      music.volume = 0.5;
+      music.play();
+    }, { once: true });
+
     animate();
   }
 
   function createStars() {
-  const loveShape = new THREE.Shape();
-  const x = 0, y = 0;
-  loveShape.moveTo(x + 25, y + 25);
-  loveShape.bezierCurveTo(x + 25, y + 25, x + 20, y, x, y);
-  loveShape.bezierCurveTo(x - 30, y, x - 30, y + 35, x - 30, y + 35);
-  loveShape.bezierCurveTo(x - 30, y + 55, x - 10, y + 77, x + 25, y + 95);
-  loveShape.bezierCurveTo(x + 60, y + 77, x + 80, y + 55, x + 80, y + 35);
-  loveShape.bezierCurveTo(x + 80, y + 35, x + 80, y, x + 50, y);
-  loveShape.bezierCurveTo(x + 35, y, x + 25, y + 25, x + 25, y + 25);
+    const loveShape = new THREE.Shape();
+    const x = 0, y = 0;
+    loveShape.moveTo(x + 25, y + 25);
+    loveShape.bezierCurveTo(x + 25, y + 25, x + 20, y, x, y);
+    loveShape.bezierCurveTo(x - 30, y, x - 30, y + 35, x - 30, y + 35);
+    loveShape.bezierCurveTo(x - 30, y + 55, x - 10, y + 77, x + 25, y + 95);
+    loveShape.bezierCurveTo(x + 60, y + 77, x + 80, y + 55, x + 80, y + 35);
+    loveShape.bezierCurveTo(x + 80, y + 35, x + 80, y, x + 50, y);
+    loveShape.bezierCurveTo(x + 35, y, x + 25, y + 25, x + 25, y + 25);
 
-  const loveGeometry = new THREE.ShapeBufferGeometry(loveShape);
-  loveGeometry.scale(0.1, 0.1, 0.1); // kecilin biar kaya bintang
+    const loveGeometry = new THREE.ShapeBufferGeometry(loveShape);
+    loveGeometry.scale(0.1, 0.1, 0.1);
 
-  const loveMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xff69b4, // pink love
-    side: THREE.DoubleSide 
-  });
+    const loveMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
-  const loveCount = 500;
-  starField = new THREE.Group();
+    const loveCount = 500;
+    starField = new THREE.Group();
 
-  for (let i = 0; i < loveCount; i++) {
-    const mesh = new THREE.Mesh(loveGeometry, loveMaterial.clone());
-    mesh.material.color.setHex(ROMANTIC_COLORS[Math.floor(Math.random() * ROMANTIC_COLORS.length)]);
-    const radius = Math.random() * 1000 + 200;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(Math.random() * 2 - 1);
-    mesh.position.set(
-      radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.sin(phi) * Math.sin(theta),
-      radius * Math.cos(phi)
-    );
-    mesh.rotation.z = Math.random() * Math.PI;
-    starField.add(mesh);
+    for (let i = 0; i < loveCount; i++) {
+      const mesh = new THREE.Mesh(loveGeometry, loveMaterial.clone());
+      mesh.material.color.setHex(ROMANTIC_COLORS[Math.floor(Math.random() * ROMANTIC_COLORS.length)]);
+      const radius = Math.random() * 1000 + 200;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      mesh.position.set(
+        radius * Math.sin(phi) * Math.cos(theta),
+        radius * Math.sin(phi) * Math.sin(theta),
+        radius * Math.cos(phi)
+      );
+      mesh.rotation.z = Math.random() * Math.PI;
+      starField.add(mesh);
+    }
+
+    scene.add(starField);
   }
-
-  scene.add(starField);
-}
 
   function create3DWordRain(count=50) {
     if (!loadedFont) return;
