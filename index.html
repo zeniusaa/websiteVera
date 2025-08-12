@@ -3,15 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Buat Vera Sayang 3D</title>
+  <title>Buat Vera Sayang</title>
   <style>
     html,body { height: 100%; margin: 0; background: #000; overflow: hidden; font-family: Arial, sans-serif; }
+    #play-music-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      padding: 10px 15px;
+      background: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transition: background 0.3s;
+    }
+    #play-music-btn:hover {
+      background: #ff1493;
+    }
   </style>
 </head>
 <body>
   <div id="canvas-container"></div>
 
-  <!-- Audio musik -->
+  <button id="play-music-btn">Play Musik</button>
+
   <audio id="bg-music" loop>
     <source src="https://cdn.discordapp.com/attachments/741280712866529340/1404634996194676767/D.O_EXO_I_Do_Easy_Lyrics.mp3?ex=689be7c7&is=689a9647&hm=c91508d52f92e0826f3f48e1774060e3b619e9d0d5d304b95551fa3ba3a660d3&" type="audio/mpeg">
   </audio>
@@ -21,6 +41,8 @@
   <script src="https://threejs.org/examples/js/loaders/FontLoader.js"></script>
 
   <script>
+  // Semua kode Three.js kamu tetap sama, cuma aku tambahkan event play tombol di sini
+
   let scene, camera, renderer, starField;
   let wordGroup, wordMeshes = [];
   let mouseX = 0, mouseY = 0;
@@ -109,13 +131,6 @@
       }
     });
     document.addEventListener('touchend', () => { isDragging = false; });
-
-    // Play musik saat klik pertama
-    document.body.addEventListener('click', function() {
-      const music = document.getElementById('bg-music');
-      music.volume = 0.5;
-      music.play();
-    }, { once: true });
 
     animate();
   }
@@ -234,6 +249,14 @@
     camera.fov = Math.max(30, Math.min(120, camera.fov));
     camera.updateProjectionMatrix();
   }
+
+  // Event tombol play musik
+  document.getElementById('play-music-btn').addEventListener('click', () => {
+    const music = document.getElementById('bg-music');
+    music.volume = 0.5;
+    music.play().catch(e => console.log('Play error:', e));
+    document.getElementById('play-music-btn').style.display = 'none';
+  });
 
   init();
   </script>
