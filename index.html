@@ -12,8 +12,8 @@
   <div id="canvas-container"></div>
 
   <!-- Audio musik -->
-  <audio id="bg-music" loop autoplay muted>
-    <source src="https://cdn.discordapp.com/attachments/741280712866529340/1404634996194676767/D.O_EXO_I_Do_Easy_Lyrics.mp3?ex=689be7c7&is=689a9647&hm=c91508d52f92e0826f3f48e1774060e3b619e9d0d5d304b95551fa3ba3a660d3&">
+  <audio id="bg-music" loop>
+    <source src="https://cdn.discordapp.com/attachments/741280712866529340/1404634996194676767/D.O_EXO_I_Do_Easy_Lyrics.mp3?ex=689be7c7&is=689a9647&hm=c91508d52f92e0826f3f48e1774060e3b619e9d0d5d304b95551fa3ba3a660d3&" type="audio/mpeg">
   </audio>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -110,15 +110,12 @@
     });
     document.addEventListener('touchend', () => { isDragging = false; });
 
-    // Play musik langsung
-    const music = document.getElementById('bg-music');
-    music.volume = 0.5;
-    music.play().then(() => {
-      // Unmute setelah 1 detik agar lolos autoplay policy
-      setTimeout(() => { music.muted = false; }, 1000);
-    }).catch(err => {
-      console.warn("Autoplay diblokir browser:", err);
-    });
+    // Play musik saat klik pertama
+    document.body.addEventListener('click', function() {
+      const music = document.getElementById('bg-music');
+      music.volume = 0.5;
+      music.play();
+    }, { once: true });
 
     animate();
   }
